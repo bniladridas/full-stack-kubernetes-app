@@ -42,6 +42,22 @@ As the lead developer, I have:
    - Enhanced error logging and diagnostics
    - Standardized database connection settings
 
+### Issues Solved
+
+| Issue | Complexity | Impact | Resolution Strategy |
+|-------|------------|--------|---------------------|
+| PostgreSQL Authentication Failure | High | Critical | Reconfigured `pg_hba.conf` to use `scram-sha-256` authentication |
+| Database User Privilege Escalation | Medium | High | Updated `postgres-init.sh` to grant precise schema and table privileges |
+| Environment Variable Configuration | Low | Medium | Standardized environment variable handling in `config.py` |
+| Docker Compose Service Connectivity | Medium | High | Fixed Dockerfile paths and service dependencies |
+| Backend Startup Configuration | Low | Medium | Corrected FastAPI app initialization using settings object |
+| CORS and Security Middleware | Low | Medium | Implemented robust CORS and authentication middleware |
+| Logging and Error Handling | Medium | High | Enhanced logging configuration and error tracking |
+
+#### Complexity and Impact Legend
+- **Complexity**: Low (1-3 days), Medium (4-7 days), High (8+ days)
+- **Impact**: Low (minor functionality), Medium (significant feature), High (critical system functionality)
+
 ### Prerequisites
 - Docker
 - Docker Compose
@@ -52,8 +68,8 @@ As the lead developer, I have:
 
 #### Clone the Repository
 ```bash
-git clone https://github.com/yourusername/my-app.git
-cd my-app
+git clone https://github.com/bniladridas/full-stack-kubernetes-app.git
+cd full-stack-kubernetes-app
 ```
 
 #### Environment Configuration
