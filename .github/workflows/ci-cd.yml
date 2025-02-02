@@ -1,0 +1,138 @@
+name: Full-Stack App CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    # Backend Linting and Testing
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.9'
+    
+    - name: Install Poetry
+      run: |
+        pip install poetry
+        poetry config virtualenvs.create false
+    
+    - name: Install Backend Dependencies
+      working-directory: ./backend
+      run: poetry install
+    
+    - name: Lint Backend (flake8)
+      working-directory: ./backend
+      run: |
+        pip install flake8
+        flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+    
+    - name: Run Backend Tests
+      working-directory: ./backend
+      run: poetry run pytest
+    
+    # Frontend Linting and Testing
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install Frontend Dependencies
+      working-directory: ./frontend
+      run: npm ci
+    
+    - name: Lint Frontend
+      working-directory: ./frontend
+      run: npm run lint
+    
+    - name: Run Frontend Tests
+      working-directory: ./frontend
+      run: npm test
+
+  build-and-push:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    # Build and Push Backend Image
+    - name: Build Backend Image
+      working-directory: ./docker
+      run: |
+        docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }} -f Dockerfile.backend ../backend
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
+    
+    # Build and Push Frontend Image
+    - name: Build Frontend Image
+      working-directory: ./docker
+      run: |
+        docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} -f Dockerfile.frontend ../frontend
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
+
+  deploy-to-kubernetes:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Kubernetes
+      uses: azure/setup-kubectl@v3
+    
+    - name: Configure Kubernetes Cluster
+      uses: azure/k8s-set-context@v3
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+    
+    # Update Kubernetes Deployments
+    - name: Deploy to Kubernetes
+      run: |
+        # Update backend deployment
+        kubectl set image deployment/backend backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }} -n fullstack-app
+        
+        # Update frontend deployment
+        kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} -n fullstack-app
+        
+        # Verify rollout
+        kubectl rollout status deployment/backend -n fullstack-app
+        kubectl rollout status deployment/frontend -n fullstack-app
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        ignore-unfixed: true
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'

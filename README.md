@@ -84,9 +84,3 @@ docker-compose logs backend
 - Enhanced authentication
 - Advanced monitoring and logging
 - Continuous Integration/Continuous Deployment (CI/CD) pipeline
-
-### License
-[Specify your license here]
-
-### Contact
-[Your contact information]

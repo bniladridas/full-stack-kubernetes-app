@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "full-stack-kubernetes-app"
+version = "0.1.0"
+description = "Full-stack web application with Docker and Kubernetes support"
+authors = ["Your Name <your.email@example.com>"]
+packages = [
+    { include = "src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.95.1"
+sqlalchemy = "^1.4.46"
+pydantic = "^1.10.7"
+python-jose = "^3.3.0"
+passlib = "^1.7.4"
+python-multipart = "^0.0.6"
+psycopg2-binary = "^2.9.6"
+alembic = "^1.10.3"
+psutil = "^5.9.5"  # Add psutil for system diagnostics
+python-dotenv = "^1.0.0"
+prometheus-fastapi-instrumentator = "^6.0.0"
+requests = "^2.28.2"
+email-validator = "^2.1.0"
+uvicorn = "^0.22.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.3.1"
+httpx = "^0.24.0"
+asynctest = "^0.13.0"
+coverage = "^7.2.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

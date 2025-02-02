@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: my-app-postgres-1
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgrespassword
+      - POSTGRES_DB=myappdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/postgres-init.sh:/docker-entrypoint-initdb.d/init.sh
+      - ./docker/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./docker/postgres-custom.conf:/etc/postgresql/postgresql.conf
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: my-app-backend-1
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=myappdb
+      - DB_USER=myappuser
+      - DB_PASSWORD=myapppassword
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/backend/src
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    ports:
+      - "8000:8000"
+    networks:
+      - default
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: my-app-frontend-1
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - default
+
+volumes:
+  postgres_data:
+
+networks:
+  default:

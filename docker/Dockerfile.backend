@@ -1,0 +1,35 @@
+# Use official Python runtime as base image
+FROM python:3.9-slim-buster
+
+# Set working directory
+WORKDIR /app/backend
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV POETRY_VERSION=1.4.2
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN pip install "poetry==$POETRY_VERSION"
+
+# Copy project files
+COPY backend/pyproject.toml backend/poetry.lock* ./
+
+# Configure Poetry
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-root --no-dev --no-interaction --no-ansi
+
+# Copy the rest of the application
+COPY backend/src ./src
+
+# Expose port for the application
+EXPOSE 8000
+
+# Command to run the application
+CMD ["poetry", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
